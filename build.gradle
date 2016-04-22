@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+
+    id 'idea'
+    id 'eclipse'
+
+    id 'net.minecrell.licenser' version '0.1.2'
+    id 'com.github.johnrengelman.shadow' version '1.2.3'
+}
+defaultTasks 'clean', 'licenseFormat'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group 'xyz.lexteam'
+version '1.0.0-SNAPSHOT'
+description = "Spectre - The Lexteam module loader."
+ext.url = 'https://www.lexteam.xyz/'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+}
+
+license {
+    header file('HEADER.txt')
+    include '**/*.java'
+    newLine = false
+}
+
+jar {
+    classifier = 'base'
+
+    manifest {
+        attributes(
+                'Implementation-Title': project.name,
+                'Implementation-Version': version,
+                'Main-Class': 'xyz.lexteam.tangerine.Main'
+        )
+    }
+}
+
+shadowJar {
+    classifier = ''
+}
+
+task javadocJar(type: Jar, dependsOn: 'javadoc') {
+    from javadoc.destinationDir
+    classifier = 'javadoc'
+}
+
+task sourcesJar(type: Jar, dependsOn: 'classes') {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+artifacts {
+    archives shadowJar
+    archives javadocJar
+    archives sourcesJar
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.12'
+}
