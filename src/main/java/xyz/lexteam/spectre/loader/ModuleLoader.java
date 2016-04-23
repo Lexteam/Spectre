@@ -152,56 +152,53 @@ public class ModuleLoader {
             T moduleDescriptor = (T) descriptorInfo.get(ModuleDescriptorModel.class);
 
             // Get the module class
-            Class<?> moduleClass;
             try {
                 ModuleClassLoader classLoader =
                         new ModuleClassLoader(jarFile.toURI().toURL(), ModuleLoader.class.getClassLoader());
-                moduleClass = classLoader.loadClass(moduleDescriptor.getModuleClass());
+                Class<?> moduleClass = classLoader.loadClass(moduleDescriptor.getModuleClass());
+
+                // Check module has the @Module annotation
+                if (moduleClass.isAnnotationPresent(Module.class)) {
+                    // Get annotation
+                    Module module = moduleClass.getDeclaredAnnotation(Module.class);
+
+                    // Instantiate the module class
+                    HookInfo constructInfo = new HookInfo();
+                    constructInfo.put(Class.class, moduleClass);
+                    this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
+
+                    // Create container
+                    modules.add(new ModuleContainer<T>() {
+                        @Override
+                        public String getId() {
+                            return module.id();
+                        }
+
+                        @Override
+                        public String getName() {
+                            return module.name();
+                        }
+
+                        @Override
+                        public String getVersion() {
+                            return module.version();
+                        }
+
+                        @Override
+                        public Object getInstance() {
+                            return constructInfo.get("instance");
+                        }
+
+                        @Override
+                        public T getDescriptor() {
+                            return moduleDescriptor;
+                        }
+                    });
+                }
             } catch (MalformedURLException e) {
                 e.printStackTrace();
-                return null;
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
-                return null;
-            }
-
-            // Check module has the @Module annotation
-            if (moduleClass.isAnnotationPresent(Module.class)) {
-                // Get annotation
-                Module module = moduleClass.getDeclaredAnnotation(Module.class);
-
-                // Instantiate the module class
-                HookInfo constructInfo = new HookInfo();
-                constructInfo.put(Class.class, moduleClass);
-                this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
-
-                // Create container
-                modules.add(new ModuleContainer<T>() {
-                    @Override
-                    public String getId() {
-                        return module.id();
-                    }
-
-                    @Override
-                    public String getName() {
-                        return module.name();
-                    }
-
-                    @Override
-                    public String getVersion() {
-                        return module.version();
-                    }
-
-                    @Override
-                    public Object getInstance() {
-                        return constructInfo.get("instance");
-                    }
-
-                    @Override
-                    public T getDescriptor() {
-                        return moduleDescriptor;
-                    }
-                });
             }
         }
 
