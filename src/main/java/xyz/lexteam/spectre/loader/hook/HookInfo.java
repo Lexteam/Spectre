@@ -44,6 +44,17 @@ public class HookInfo {
     }
 
     /**
+     * Gets the requested value from the locals, using the specified type.
+     *
+     * @param key The type's class
+     * @param <T> The type
+     * @return The value
+     */
+    public <T> T get(Class<T> key) {
+        return this.get(key);
+    }
+
+    /**
      * Puts the given value into the locals, using the given key.
      *
      * @param key The key

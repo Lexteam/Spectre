@@ -23,13 +23,26 @@
  */
 package xyz.lexteam.spectre.loader;
 
+import xyz.lexteam.spectre.loader.hook.Hook;
+import xyz.lexteam.spectre.loader.hook.HookInfo;
+import xyz.lexteam.spectre.loader.hook.HookKey;
+import xyz.lexteam.spectre.loader.hook.Hooks;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The module loader finds modules and loads them.
  * It has 'hooks' of which can be used to change the way the module is instantiated for instance.
  */
 public class ModuleLoader {
+
+    private Map<HookKey, Hook> hookRegistry = new HashMap();
 
     /**
      * Constructs a new module loader, where the modules directory is set the the 'modules' directory in the working
@@ -45,6 +58,50 @@ public class ModuleLoader {
      * @param modulesDir The modules directory
      */
     public ModuleLoader(File modulesDir) {
+        this.registerHook(Hooks.READ_DESCRIPTOR, new Hook() {
+            @Override
+            public void execute(HookInfo info) {
+                try {
+                    BufferedReader descriptorReader =
+                            new BufferedReader(new InputStreamReader(info.get(URL.class).openStream()));
+                    info.put("main-class", descriptorReader.readLine());
+                    descriptorReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        this.registerHook(Hooks.CONSTRUCT_INSTANCE, new Hook() {
+            @Override
+            public void execute(HookInfo info) {
+                try {
+                    info.put("instance", info.get(Class.class).newInstance());
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
 
+    /**
+     * Gets the hook from the specified hook key.
+     *
+     * @param key The key
+     * @return The hook
+     */
+    private Hook getHook(HookKey key) {
+        return this.hookRegistry.get(key);
+    }
+
+    /**
+     * Registers the hook, with the specified hook key.
+     *
+     * @param key The key
+     * @param hook The hook
+     */
+    public void registerHook(HookKey key, Hook hook) {
+        this.hookRegistry.put(key, hook);
     }
 }
