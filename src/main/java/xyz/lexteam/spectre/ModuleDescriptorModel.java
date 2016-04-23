@@ -24,36 +24,14 @@
 package xyz.lexteam.spectre;
 
 /**
- * A wrapper around {@link Module}, with a method to get the instance.
+ * This interface is designed to be implemented by projects that use Spectre, as to allow custom descriptor types.
  */
-public interface ModuleContainer<M extends ModuleDescriptorModel> {
+public interface ModuleDescriptorModel {
 
     /**
-     * @see Module#id()
-     */
-    String getId();
-
-    /**
-     * @see Module#name()
-     */
-    String getName();
-
-    /**
-     * @see Module#version()
-     */
-    String getVersion();
-
-    /**
-     * Gets the instance of this module.
+     * Gets the main class for the module.
      *
-     * @return The instance
+     * @return The module's class
      */
-    Object getInstance();
-
-    /**
-     * Gets the descriptor of this module.
-     *
-     * @return The descriptor
-     */
-    M getDescriptor();
+    String getModuleClass();
 }

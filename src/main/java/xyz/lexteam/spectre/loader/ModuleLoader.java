@@ -21,39 +21,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package xyz.lexteam.spectre;
+package xyz.lexteam.spectre.loader;
+
+import java.io.File;
 
 /**
- * A wrapper around {@link Module}, with a method to get the instance.
+ * The module loader finds modules and loads them.
+ * It has 'hooks' of which can be used to change the way the module is instantiated for instance.
  */
-public interface ModuleContainer<M extends ModuleDescriptorModel> {
+public class ModuleLoader {
 
     /**
-     * @see Module#id()
+     * Constructs a new module loader, where the modules directory is set the the 'modules' directory in the working
+     * directory.
      */
-    String getId();
+    public ModuleLoader() {
+        this(new File(".", "modules"));
+    }
 
     /**
-     * @see Module#name()
-     */
-    String getName();
-
-    /**
-     * @see Module#version()
-     */
-    String getVersion();
-
-    /**
-     * Gets the instance of this module.
+     * Constructs a new module loader, with the specified modules directory.
      *
-     * @return The instance
+     * @param modulesDir The modules directory
      */
-    Object getInstance();
+    public ModuleLoader(File modulesDir) {
 
-    /**
-     * Gets the descriptor of this module.
-     *
-     * @return The descriptor
-     */
-    M getDescriptor();
+    }
 }
