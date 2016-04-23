@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'maven'
 
     id 'idea'
     id 'eclipse'
@@ -36,8 +37,7 @@ jar {
     manifest {
         attributes(
                 'Implementation-Title': project.name,
-                'Implementation-Version': version,
-                'Main-Class': 'xyz.lexteam.tangerine.Main'
+                'Implementation-Version': version
         )
     }
 }
@@ -60,6 +60,47 @@ artifacts {
     archives shadowJar
     archives javadocJar
     archives sourcesJar
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            if (System.getenv('MAVEN_RELEASES') != null) {
+                repository(url: 'file://' + System.getenv('MAVEN_RELEASES'))
+                snapshotRepository(url: 'file://' + System.getenv('MAVEN_SNAPSHOTS'))
+            }
+
+            pom {
+                artifactId = project.archivesBaseName.toLowerCase()
+
+                project {
+                    name = project.archivesBaseName
+                    description = project.description
+                    packaging = 'jar'
+                    url = project.url
+
+                    scm {
+                        url = "https://github.com/Lexteam/Spectre"
+                        connection = "scm:git:https://github.com/Lexteam/Spectre.git"
+                        developerConnection = "scm:git:git@github.com:Lexteam/Spectre.git"
+                    }
+
+                    issueManagement {
+                        system = 'GitHub'
+                        url = 'https://github.com/Lexteam/Spectre/issues'
+                    }
+
+                    licenses {
+                        license {
+                            name = 'MIT License'
+                            url = 'http://opensource.org/licenses/MIT'
+                            distribution = 'repo'
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 task wrapper(type: Wrapper) {
