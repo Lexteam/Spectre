@@ -27,20 +27,18 @@ import xyz.lexteam.spectre.Module;
 import xyz.lexteam.spectre.ModuleContainer;
 import xyz.lexteam.spectre.loader.hook.Hook;
 import xyz.lexteam.spectre.loader.hook.HookInfo;
+import xyz.lexteam.spectre.loader.hook.Hooks;
 import xyz.lexteam.spectre.loader.hook.ReturnableHook;
 import xyz.lexteam.spectre.loader.hook.key.HookKey;
-import xyz.lexteam.spectre.loader.hook.Hooks;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.JarFile;
 
 /**
  * The module loader finds modules and loads them.
@@ -71,21 +69,39 @@ public class ModuleLoader {
             modulesDir.mkdirs();
         }
 
-        this.registerHook(Hooks.FIND_MAIN_CLASS, new ReturnableHook<String>() {
+        this.registerHook(Hooks.FIND_MAIN_CLASSES, new ReturnableHook<List<String>>() {
             @Override
-            public String execute(HookInfo info) {
+            public List<String> execute(HookInfo info) {
+                List<String> moduleClasses = new ArrayList<>();
+
                 try {
-                    URL url = new URL("jar:file:" + info.get(File.class).getAbsolutePath() + "!/module.info");
-                    BufferedReader descriptorReader = new BufferedReader(new InputStreamReader(url.openStream()));
+                    ModuleClassLoader classLoader = new ModuleClassLoader(
+                            info.get(File.class).toURI().toURL(), ModuleLoader.class.getClassLoader());
 
-                    String mainClass = descriptorReader.readLine();
+                    try (JarFile jarFile = new JarFile(info.get(File.class))) {
+                        jarFile.stream().forEach(jarEntry -> {
+                            if (!jarEntry.isDirectory() && jarEntry.getName().endsWith(".class")) {
+                                String className = jarEntry.getName().replace('/', '.');
 
-                    descriptorReader.close();
-                    return mainClass;
-                } catch (IOException e) {
+                                try {
+                                    Class<?> moduleClass = classLoader.loadClass(
+                                            className.substring(0, className.length() - ".class".length()));
+                                    if (moduleClass.isAnnotationPresent(Module.class)) {
+                                        moduleClasses.add(className);
+                                    }
+                                } catch (ClassNotFoundException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } catch (MalformedURLException e) {
                     e.printStackTrace();
-                    return null;
                 }
+
+                return moduleClasses;
             }
         });
         this.registerHook(Hooks.CONSTRUCT_INSTANCE, new ReturnableHook<Object>() {
@@ -142,51 +158,53 @@ public class ModuleLoader {
             // Get the module descriptor
             HookInfo descriptorInfo = new HookInfo();
             descriptorInfo.put(File.class, jarFile);
-            String mainClass = this.getHook(Hooks.FIND_MAIN_CLASS).execute(descriptorInfo);
+            List<String> mainClasses = this.getHook(Hooks.FIND_MAIN_CLASSES).execute(descriptorInfo);
 
-            // Get the module class
-            try {
-                ModuleClassLoader classLoader =
-                        new ModuleClassLoader(jarFile.toURI().toURL(), ModuleLoader.class.getClassLoader());
-                Class<?> moduleClass = classLoader.loadClass(mainClass);
+            for (String mainClass : mainClasses) {
+                // Get the module class
+                try {
+                    ModuleClassLoader classLoader =
+                            new ModuleClassLoader(jarFile.toURI().toURL(), ModuleLoader.class.getClassLoader());
+                    Class<?> moduleClass = classLoader.loadClass(mainClass);
 
-                // Check module has the @Module annotation
-                if (moduleClass.isAnnotationPresent(Module.class)) {
-                    // Get annotation
-                    Module module = moduleClass.getDeclaredAnnotation(Module.class);
+                    // Check module has the @Module annotation
+                    if (moduleClass.isAnnotationPresent(Module.class)) {
+                        // Get annotation
+                        Module module = moduleClass.getDeclaredAnnotation(Module.class);
 
-                    // Instantiate the module class
-                    HookInfo constructInfo = new HookInfo();
-                    constructInfo.put(Class.class, moduleClass);
-                    Object instance = this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
+                        // Instantiate the module class
+                        HookInfo constructInfo = new HookInfo();
+                        constructInfo.put(Class.class, moduleClass);
+                        Object instance = this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
 
-                    // Create container
-                    modules.add(new ModuleContainer() {
-                        @Override
-                        public String getId() {
-                            return module.id();
-                        }
+                        // Create container
+                        modules.add(new ModuleContainer() {
+                            @Override
+                            public String getId() {
+                                return module.id();
+                            }
 
-                        @Override
-                        public String getName() {
-                            return module.name();
-                        }
+                            @Override
+                            public String getName() {
+                                return module.name();
+                            }
 
-                        @Override
-                        public String getVersion() {
-                            return module.version();
-                        }
+                            @Override
+                            public String getVersion() {
+                                return module.version();
+                            }
 
-                        @Override
-                        public Object getInstance() {
-                            return instance;
-                        }
-                    });
+                            @Override
+                            public Object getInstance() {
+                                return instance;
+                            }
+                        });
+                    }
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
                 }
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
             }
         }
 

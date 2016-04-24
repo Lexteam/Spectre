@@ -26,13 +26,17 @@ package xyz.lexteam.spectre.loader.hook;
 import xyz.lexteam.spectre.loader.hook.key.HookKey;
 import xyz.lexteam.spectre.loader.hook.key.ReturnableHookKey;
 
+import java.util.List;
+
 /**
  * A list of all the hooks.
  */
 public final class Hooks {
 
-    public static final ReturnableHookKey<String> FIND_MAIN_CLASS = createReturnableHookKey(ReturnableHook.class);
-    public static final ReturnableHookKey<Object> CONSTRUCT_INSTANCE = createReturnableHookKey(ReturnableHook.class);
+    public static final ReturnableHookKey<List<String>> FIND_MAIN_CLASSES
+            = createReturnableHookKey(ReturnableHook.class);
+    public static final ReturnableHookKey<Object> CONSTRUCT_INSTANCE
+            = createReturnableHookKey(ReturnableHook.class);
 
     private static final HookKey createVoidableHookKey(Class<? extends Hook> hookClass) {
         return () -> hookClass;
