@@ -25,7 +25,6 @@ package xyz.lexteam.spectre.loader;
 
 import xyz.lexteam.spectre.Module;
 import xyz.lexteam.spectre.ModuleContainer;
-import xyz.lexteam.spectre.ModuleDescriptorModel;
 import xyz.lexteam.spectre.loader.hook.Hook;
 import xyz.lexteam.spectre.loader.hook.HookInfo;
 import xyz.lexteam.spectre.loader.hook.HookKey;
@@ -71,24 +70,14 @@ public class ModuleLoader {
             modulesDir.mkdirs();
         }
 
-        this.registerHook(Hooks.READ_DESCRIPTOR, new Hook() {
+        this.registerHook(Hooks.FIND_MAIN_CLASS, new Hook() {
             @Override
             public void execute(HookInfo info) {
                 try {
                     URL url = new URL("jar:file:" + info.get(File.class).getAbsolutePath() + "!/module.info");
                     BufferedReader descriptorReader = new BufferedReader(new InputStreamReader(url.openStream()));
 
-                    info.put(ModuleDescriptorModel.class, new ModuleDescriptorModel() {
-                        @Override
-                        public String getModuleClass() {
-                            try {
-                                return descriptorReader.readLine();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                return null;
-                            }
-                        }
-                    });
+                    info.put(String.class, descriptorReader.readLine());
 
                     descriptorReader.close();
                 } catch (IOException e) {
@@ -133,11 +122,10 @@ public class ModuleLoader {
     /**
      * Finds and loads all the modules in the module directory specified in the constructor.
      *
-     * @param <T> The module descriptor type
      * @return A list of module containers
      */
-    public <T extends ModuleDescriptorModel> List<ModuleContainer<T>> loadAllModules() {
-        List<ModuleContainer<T>> modules = new ArrayList<>();
+    public List<ModuleContainer> loadAllModules() {
+        List<ModuleContainer> modules = new ArrayList<>();
 
         // Find all jars in the module directory
         File[] jarFiles = this.modulesDir.listFiles(file -> {
@@ -148,14 +136,14 @@ public class ModuleLoader {
             // Get the module descriptor
             HookInfo descriptorInfo = new HookInfo();
             descriptorInfo.put(File.class, jarFile);
-            this.getHook(Hooks.READ_DESCRIPTOR).execute(descriptorInfo);
-            T moduleDescriptor = (T) descriptorInfo.get(ModuleDescriptorModel.class);
+            this.getHook(Hooks.FIND_MAIN_CLASS).execute(descriptorInfo);
+            String mainClass = descriptorInfo.get(String.class);
 
             // Get the module class
             try {
                 ModuleClassLoader classLoader =
                         new ModuleClassLoader(jarFile.toURI().toURL(), ModuleLoader.class.getClassLoader());
-                Class<?> moduleClass = classLoader.loadClass(moduleDescriptor.getModuleClass());
+                Class<?> moduleClass = classLoader.loadClass(mainClass);
 
                 // Check module has the @Module annotation
                 if (moduleClass.isAnnotationPresent(Module.class)) {
@@ -168,7 +156,7 @@ public class ModuleLoader {
                     this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
 
                     // Create container
-                    modules.add(new ModuleContainer<T>() {
+                    modules.add(new ModuleContainer() {
                         @Override
                         public String getId() {
                             return module.id();
@@ -187,11 +175,6 @@ public class ModuleLoader {
                         @Override
                         public Object getInstance() {
                             return constructInfo.get("instance");
-                        }
-
-                        @Override
-                        public T getDescriptor() {
-                            return moduleDescriptor;
                         }
                     });
                 }

@@ -28,7 +28,7 @@ package xyz.lexteam.spectre.loader.hook;
  */
 public final class Hooks {
 
-    public static final HookKey READ_DESCRIPTOR = createHookKey("read_descriptor");
+    public static final HookKey FIND_MAIN_CLASS = createHookKey("read_descriptor");
     public static final HookKey CONSTRUCT_INSTANCE = createHookKey("construct_instance");
 
     private static final HookKey createHookKey(String id) {

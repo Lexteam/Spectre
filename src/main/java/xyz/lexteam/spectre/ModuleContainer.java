@@ -26,7 +26,7 @@ package xyz.lexteam.spectre;
 /**
  * A wrapper around {@link Module}, with a method to get the instance.
  */
-public interface ModuleContainer<M extends ModuleDescriptorModel> {
+public interface ModuleContainer {
 
     /**
      * @see Module#id()
@@ -49,11 +49,4 @@ public interface ModuleContainer<M extends ModuleDescriptorModel> {
      * @return The instance
      */
     Object getInstance();
-
-    /**
-     * Gets the descriptor of this module.
-     *
-     * @return The descriptor
-     */
-    M getDescriptor();
 }
