@@ -141,8 +141,7 @@ public class ModuleLoader {
             // Get the module descriptor
             HookInfo descriptorInfo = new HookInfo();
             descriptorInfo.put(File.class, jarFile);
-            this.getHook(Hooks.FIND_MAIN_CLASS).execute(descriptorInfo);
-            String mainClass = descriptorInfo.get(String.class);
+            String mainClass = this.getHook(Hooks.FIND_MAIN_CLASS).execute(descriptorInfo);
 
             // Get the module class
             try {
@@ -158,7 +157,7 @@ public class ModuleLoader {
                     // Instantiate the module class
                     HookInfo constructInfo = new HookInfo();
                     constructInfo.put(Class.class, moduleClass);
-                    this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
+                    Object instance = this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
 
                     // Create container
                     modules.add(new ModuleContainer() {
@@ -179,7 +178,7 @@ public class ModuleLoader {
 
                         @Override
                         public Object getInstance() {
-                            return constructInfo.get("instance");
+                            return instance;
                         }
                     });
                 }
