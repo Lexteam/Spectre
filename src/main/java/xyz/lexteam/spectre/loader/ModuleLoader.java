@@ -74,11 +74,14 @@ public class ModuleLoader {
             public List<Class> execute(HookInfo info) {
                 List<Class> moduleClasses = new ArrayList<>();
 
+                File file = info.get(File.class);
+                Class annotationClass = info.get(Class.class);
+
                 try {
                     ModuleClassLoader classLoader = new ModuleClassLoader(
-                            info.get(File.class).toURI().toURL(), ModuleLoader.class.getClassLoader());
+                            file.toURI().toURL(), ModuleLoader.class.getClassLoader());
 
-                    try (JarFile jarFile = new JarFile(info.get(File.class))) {
+                    try (JarFile jarFile = new JarFile(file)) {
                         jarFile.stream().forEach(jarEntry -> {
                             if (!jarEntry.isDirectory() && jarEntry.getName().endsWith(".class")) {
                                 String className = jarEntry.getName().replace('/', '.');
@@ -86,7 +89,7 @@ public class ModuleLoader {
                                 try {
                                     Class<?> moduleClass = classLoader.loadClass(
                                             className.substring(0, className.length() - ".class".length()));
-                                    if (moduleClass.isAnnotationPresent(Module.class)) {
+                                    if (moduleClass.isAnnotationPresent(annotationClass)) {
                                         moduleClasses.add(moduleClass);
                                     }
                                 } catch (ClassNotFoundException e) {
@@ -200,6 +203,7 @@ public class ModuleLoader {
             // Get the module descriptor
             HookInfo descriptorInfo = new HookInfo();
             descriptorInfo.put(File.class, jarFile);
+            descriptorInfo.put(Class.class, moduleClass);
             List<Class> mainClasses = this.getHook(Hooks.FIND_MAIN_CLASSES).execute(descriptorInfo);
 
             for (Class<?> mainClass : mainClasses) {
