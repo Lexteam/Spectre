@@ -119,8 +119,9 @@ public class ModuleLoader {
      *
      * @param key The key
      * @param hook The hook
+     * @param <T> The type of the hook
      */
-    public <T extends Hook>  void registerHook(HookKey<T> key, T hook) {
+    public <T extends Hook> void registerHook(HookKey<T> key, T hook) {
         this.hookRegistry.put(key, hook);
     }
 
