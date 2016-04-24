@@ -33,7 +33,7 @@ import java.util.List;
  */
 public final class Hooks {
 
-    public static final ReturnableHookKey<List<String>> FIND_MAIN_CLASSES
+    public static final ReturnableHookKey<List<Class>> FIND_MAIN_CLASSES
             = createReturnableHookKey(ReturnableHook.class);
     public static final ReturnableHookKey<Object> CONSTRUCT_INSTANCE
             = createReturnableHookKey(ReturnableHook.class);

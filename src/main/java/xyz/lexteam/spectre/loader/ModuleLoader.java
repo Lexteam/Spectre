@@ -69,10 +69,10 @@ public class ModuleLoader {
             modulesDir.mkdirs();
         }
 
-        this.registerHook(Hooks.FIND_MAIN_CLASSES, new ReturnableHook<List<String>>() {
+        this.registerHook(Hooks.FIND_MAIN_CLASSES, new ReturnableHook<List<Class>>() {
             @Override
-            public List<String> execute(HookInfo info) {
-                List<String> moduleClasses = new ArrayList<>();
+            public List<Class> execute(HookInfo info) {
+                List<Class> moduleClasses = new ArrayList<>();
 
                 try {
                     ModuleClassLoader classLoader = new ModuleClassLoader(
@@ -87,7 +87,7 @@ public class ModuleLoader {
                                     Class<?> moduleClass = classLoader.loadClass(
                                             className.substring(0, className.length() - ".class".length()));
                                     if (moduleClass.isAnnotationPresent(Module.class)) {
-                                        moduleClasses.add(className);
+                                        moduleClasses.add(moduleClass);
                                     }
                                 } catch (ClassNotFoundException e) {
                                     e.printStackTrace();
@@ -158,53 +158,39 @@ public class ModuleLoader {
             // Get the module descriptor
             HookInfo descriptorInfo = new HookInfo();
             descriptorInfo.put(File.class, jarFile);
-            List<String> mainClasses = this.getHook(Hooks.FIND_MAIN_CLASSES).execute(descriptorInfo);
+            List<Class> mainClasses = this.getHook(Hooks.FIND_MAIN_CLASSES).execute(descriptorInfo);
 
-            for (String mainClass : mainClasses) {
-                // Get the module class
-                try {
-                    ModuleClassLoader classLoader =
-                            new ModuleClassLoader(jarFile.toURI().toURL(), ModuleLoader.class.getClassLoader());
-                    Class<?> moduleClass = classLoader.loadClass(mainClass);
+            for (Class<?> moduleClass : mainClasses) {
+                // Get annotation
+                Module module = moduleClass.getDeclaredAnnotation(Module.class);
 
-                    // Check module has the @Module annotation
-                    if (moduleClass.isAnnotationPresent(Module.class)) {
-                        // Get annotation
-                        Module module = moduleClass.getDeclaredAnnotation(Module.class);
+                // Instantiate the module class
+                HookInfo constructInfo = new HookInfo();
+                constructInfo.put(Class.class, moduleClass);
+                Object instance = this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
 
-                        // Instantiate the module class
-                        HookInfo constructInfo = new HookInfo();
-                        constructInfo.put(Class.class, moduleClass);
-                        Object instance = this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
-
-                        // Create container
-                        modules.add(new ModuleContainer() {
-                            @Override
-                            public String getId() {
-                                return module.id();
-                            }
-
-                            @Override
-                            public String getName() {
-                                return module.name();
-                            }
-
-                            @Override
-                            public String getVersion() {
-                                return module.version();
-                            }
-
-                            @Override
-                            public Object getInstance() {
-                                return instance;
-                            }
-                        });
+                // Create container
+                modules.add(new ModuleContainer() {
+                    @Override
+                    public String getId() {
+                        return module.id();
                     }
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
+
+                    @Override
+                    public String getName() {
+                        return module.name();
+                    }
+
+                    @Override
+                    public String getVersion() {
+                        return module.version();
+                    }
+
+                    @Override
+                    public Object getInstance() {
+                        return instance;
+                    }
+                });
             }
         }
 
