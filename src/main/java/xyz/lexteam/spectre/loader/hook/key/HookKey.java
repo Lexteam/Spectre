@@ -21,17 +21,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package xyz.lexteam.spectre.loader.hook;
+package xyz.lexteam.spectre.loader.hook.key;
+
+import xyz.lexteam.spectre.loader.hook.Hook;
 
 /**
  * Used to identify hooks.
  */
-public interface HookKey {
+public interface HookKey<T extends Hook> {
 
     /**
-     * The identifier for the hook.
+     * Gets the Hook's class.
      *
-     * @return The identifier
+     * @return The hook's class
      */
-    String getId();
+    Class<T> getHookClass();
 }

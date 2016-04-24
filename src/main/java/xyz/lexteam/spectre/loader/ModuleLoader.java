@@ -27,7 +27,8 @@ import xyz.lexteam.spectre.Module;
 import xyz.lexteam.spectre.ModuleContainer;
 import xyz.lexteam.spectre.loader.hook.Hook;
 import xyz.lexteam.spectre.loader.hook.HookInfo;
-import xyz.lexteam.spectre.loader.hook.HookKey;
+import xyz.lexteam.spectre.loader.hook.ReturnableHook;
+import xyz.lexteam.spectre.loader.hook.key.HookKey;
 import xyz.lexteam.spectre.loader.hook.Hooks;
 
 import java.io.BufferedReader;
@@ -70,30 +71,34 @@ public class ModuleLoader {
             modulesDir.mkdirs();
         }
 
-        this.registerHook(Hooks.FIND_MAIN_CLASS, new Hook() {
+        this.registerHook(Hooks.FIND_MAIN_CLASS, new ReturnableHook<String>() {
             @Override
-            public void execute(HookInfo info) {
+            public String execute(HookInfo info) {
                 try {
                     URL url = new URL("jar:file:" + info.get(File.class).getAbsolutePath() + "!/module.info");
                     BufferedReader descriptorReader = new BufferedReader(new InputStreamReader(url.openStream()));
 
-                    info.put(String.class, descriptorReader.readLine());
+                    String mainClass = descriptorReader.readLine();
 
                     descriptorReader.close();
+                    return mainClass;
                 } catch (IOException e) {
                     e.printStackTrace();
+                    return null;
                 }
             }
         });
-        this.registerHook(Hooks.CONSTRUCT_INSTANCE, new Hook() {
+        this.registerHook(Hooks.CONSTRUCT_INSTANCE, new ReturnableHook<Object>() {
             @Override
-            public void execute(HookInfo info) {
+            public Object execute(HookInfo info) {
                 try {
-                    info.put("instance", info.get(Class.class).newInstance());
+                    return info.get(Class.class).newInstance();
                 } catch (InstantiationException e) {
                     e.printStackTrace();
+                    return null;
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
+                    return null;
                 }
             }
         });
@@ -105,8 +110,8 @@ public class ModuleLoader {
      * @param key The key
      * @return The hook
      */
-    private Hook getHook(HookKey key) {
-        return this.hookRegistry.get(key);
+    private <T extends Hook> T getHook(HookKey<T> key) {
+        return (T) this.hookRegistry.get(key);
     }
 
     /**
@@ -115,7 +120,7 @@ public class ModuleLoader {
      * @param key The key
      * @param hook The hook
      */
-    public void registerHook(HookKey key, Hook hook) {
+    public <T extends Hook>  void registerHook(HookKey<T> key, T hook) {
         this.hookRegistry.put(key, hook);
     }
 

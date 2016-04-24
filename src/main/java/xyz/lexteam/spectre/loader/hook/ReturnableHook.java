@@ -24,10 +24,17 @@
 package xyz.lexteam.spectre.loader.hook;
 
 /**
- * Represents a hook.
+ * A hook which is designed to return an object.
  *
- * Hooks change the way the module loader, loads modules.
+ * @param <T> The type of object to return
  */
-public interface Hook {
+public interface ReturnableHook<T> extends Hook {
 
+    /**
+     * Executes the hook, with the given hook information.
+     *
+     * @param info The hook information
+     * @return The object
+     */
+    T execute(HookInfo info);
 }

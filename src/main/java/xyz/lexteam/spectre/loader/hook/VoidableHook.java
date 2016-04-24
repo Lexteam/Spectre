@@ -24,10 +24,14 @@
 package xyz.lexteam.spectre.loader.hook;
 
 /**
- * Represents a hook.
- *
- * Hooks change the way the module loader, loads modules.
+ * A hook with no return type.
  */
-public interface Hook {
+public interface VoidableHook extends Hook {
 
+    /**
+     * Executes the hook, with the given hook information.
+     *
+     * @param info The hook information
+     */
+    void execute(HookInfo info);
 }

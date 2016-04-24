@@ -21,13 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package xyz.lexteam.spectre.loader.hook;
+package xyz.lexteam.spectre.loader.hook.key;
+
+import xyz.lexteam.spectre.loader.hook.ReturnableHook;
 
 /**
- * Represents a hook.
- *
- * Hooks change the way the module loader, loads modules.
+ * Used to identify returnable hooks.
+ * This is useful because it allows users to know the return type.
  */
-public interface Hook {
+public interface ReturnableHookKey<R> extends HookKey<ReturnableHook<R>> {
 
 }
