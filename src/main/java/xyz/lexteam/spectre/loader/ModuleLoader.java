@@ -118,6 +118,35 @@ public class ModuleLoader {
                 }
             }
         });
+        this.registerHook(Hooks.CREATE_CONTAINER, new ReturnableHook<Object>() {
+            @Override
+            public Object execute(HookInfo info) {
+                Module module = info.get(Module.class);
+                Object instance = info.get(Object.class);
+
+                return new ModuleContainer() {
+                    @Override
+                    public String getId() {
+                        return module.id();
+                    }
+
+                    @Override
+                    public String getName() {
+                        return module.name();
+                    }
+
+                    @Override
+                    public String getVersion() {
+                        return module.version();
+                    }
+
+                    @Override
+                    public Object getInstance() {
+                        return instance;
+                    }
+                };
+            }
+        });
     }
 
     /**
@@ -147,7 +176,20 @@ public class ModuleLoader {
      * @return A list of module containers
      */
     public List<ModuleContainer> loadAllModules() {
-        List<ModuleContainer> modules = new ArrayList<>();
+        return this.loadAllModules(Module.class);
+    }
+
+    /**
+     * Finds and loads all the modules in the module directory specified in the constructor.
+     * The modules MUST be annotated with the given class.
+     *
+     * @param moduleClass The class of the annotation
+     * @param <C> The container type
+     * @param <M> The annotation type
+     * @return A list of module containers
+     */
+    public <C, M> List<C> loadAllModules(Class moduleClass) {
+        List<C> modules = new ArrayList<>();
 
         // Find all jars in the module directory
         File[] jarFiles = this.modulesDir.listFiles(file -> {
@@ -160,37 +202,20 @@ public class ModuleLoader {
             descriptorInfo.put(File.class, jarFile);
             List<Class> mainClasses = this.getHook(Hooks.FIND_MAIN_CLASSES).execute(descriptorInfo);
 
-            for (Class<?> moduleClass : mainClasses) {
+            for (Class<?> mainClass : mainClasses) {
                 // Get annotation
-                Module module = moduleClass.getDeclaredAnnotation(Module.class);
+                M module = (M) mainClass.getDeclaredAnnotation(moduleClass);
 
                 // Instantiate the module class
                 HookInfo constructInfo = new HookInfo();
-                constructInfo.put(Class.class, moduleClass);
+                constructInfo.put(Class.class, mainClass);
                 Object instance = this.getHook(Hooks.CONSTRUCT_INSTANCE).execute(constructInfo);
 
                 // Create container
-                modules.add(new ModuleContainer() {
-                    @Override
-                    public String getId() {
-                        return module.id();
-                    }
-
-                    @Override
-                    public String getName() {
-                        return module.name();
-                    }
-
-                    @Override
-                    public String getVersion() {
-                        return module.version();
-                    }
-
-                    @Override
-                    public Object getInstance() {
-                        return instance;
-                    }
-                });
+                HookInfo containerInfo = new HookInfo();
+                containerInfo.put(moduleClass, module);
+                containerInfo.put(Object.class, instance);
+                modules.add((C) this.getHook(Hooks.CREATE_CONTAINER).execute(containerInfo));
             }
         }
 

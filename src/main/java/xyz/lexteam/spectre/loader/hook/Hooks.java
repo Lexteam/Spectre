@@ -37,6 +37,8 @@ public final class Hooks {
             = createReturnableHookKey(ReturnableHook.class);
     public static final ReturnableHookKey<Object> CONSTRUCT_INSTANCE
             = createReturnableHookKey(ReturnableHook.class);
+    public static final ReturnableHookKey<Object> CREATE_CONTAINER
+            = createReturnableHookKey(ReturnableHook.class);
 
     private static final HookKey createVoidableHookKey(Class<? extends Hook> hookClass) {
         return () -> hookClass;
